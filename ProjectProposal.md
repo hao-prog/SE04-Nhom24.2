@@ -108,15 +108,15 @@ Theo mô hình 5W1H: Mọi người tự đặt ra các câu hỏi WHAT? WHEN? W
 
     (Trần Thế Anh)
     
-    +        Họ và tên
+    +   Họ và tên
     
-    +        Địa chỉ
+    +   Địa chỉ
     
-    +        Hoàn cảnh khó khăn cần giúp đỡ (nếu có)
+    +   Hoàn cảnh khó khăn cần giúp đỡ (nếu có)
     
-    +        Số điện thoại (nếu có)
+    +   Số điện thoại (nếu có)
     
-    +        Email (nếu có)
+    +   Email (nếu có)
 
 * *`Các cuộc hội thoại của chatbot với người dùng sẽ gồm những nội dung gì?`*
 
