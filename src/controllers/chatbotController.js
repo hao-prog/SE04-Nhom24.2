@@ -3,6 +3,54 @@ import request from "request";
 
 const MY_VERIFY_TOKEN = process.env.MY_VERIFY_TOKEN;
 
+var curQ = 1;
+var askNameQs = {
+  1: 'Vui lòng cho tôi biết tên đầy đủ của Anh/Chị?',
+  2: 'Tôi có thể gọi Anh/Chị là gì nhỉ?',
+  3: 'Tên đầy đủ của Anh/Chị là gì nhỉ?',
+  4: 'Tôi tên là Đa, còn Anh/Chị là?',
+  5: 'Mọi người thường gọi Anh/Chị là gì?', 
+  6: 'Tôi có thể biết tên của Anh/Chị không?',
+  7: 'Tôi có thể biết tôi đang nói chuyện với ai được không?',
+}
+
+function sendGreeting(sender_psid) {
+    let response;
+    let res2;
+    res2 = { "text": "Chào Anh/Chị!\nTôi là trợ lý của Tổ Thông tin đáp ứng nhanh cứu trợ thiên tai" }
+    response = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Anh/Chị muốn cứu trợ miền Trung phải không?",
+            "subtitle": "Anh/Chị có thể chọn nút ở bên dưới để trả lời",
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Đúng vậy",
+                "payload": "dungvay",
+              },
+              {
+                "type": "postback",
+                "title": "Không phải",
+                "payload": "khongphai",
+              }
+            ],
+          }]
+        }
+      }
+    }
+  
+     // Sends the response message
+     callSendAPI(sender_psid, res2);
+    //  setTimeout(function() {
+    //   console.log('hello world!');
+    //   }, 5000); 
+     callSendAPI(sender_psid, response); 
+  }
+
 let getHomepage = (req, res) => {
     return res.render("homepage.ejs");
 }
@@ -78,12 +126,45 @@ function handleMessage(sender_psid, received_message) {
 
     // Check if the message contains text
     if (received_message.text) {
-
-        // Create the payload for a basic text message
-        response = {
-            "text": `You sent the message: "${received_message.text}". Now send me an image!`
+        if (received_message.text === 'Xin chào' || received_message.text === 'Bắt đầu trò chuyện') {
+          curQ = 2;
+          sendGreeting(sender_psid);
+          
+        } else if (curQ == 2 || received_message.text === 'test') {
+          
+          // response = { "text": curQ.toString() }
+          // curQ = 3;
+          response = {
+            "attachment": {
+              "type": "template",
+              "payload": {
+                "template_type": "generic",
+                "elements": [{
+                  "title": "Anh/ Chị muốn ủng hộ theo cá nhân hay tổ chức?",
+                  "subtitle": "Nhấn vào nút để trả lời.",
+                  "buttons": [
+                    {
+                      "type": "postback",
+                      "title": "Cá nhân",
+                      "payload": "canhan",
+                    },
+                    {
+                      "type": "postback",
+                      "title": "Tổ chức",
+                      "payload": "tochuc",
+                    },
+                    {
+                      "type": "postback",
+                      "title": "Khác",
+                      "payload": "donvikhac",
+                    }
+                  ],
+                }]
+              }
+            }
+          }
         }
-    }
+      }
     else if (received_message.attachments) {
 
         // Gets the URL of the message attachment
@@ -132,7 +213,11 @@ function handlePostback(sender_psid, received_postback) {
         response = { "text": "Thanks!" }
     } else if (payload === 'no') {
         response = { "text": "Oops, try sending another image." }
-    }
+    } else if (payload === 'dungvay') {
+        let randNum = Math.floor(Math.random() * 7) + 1;
+        let txt = askNameQs[randNum];
+        response = { "text": txt }
+      } 
     // Send the message to acknowledge the postback
     callSendAPI(sender_psid, response);
 }
