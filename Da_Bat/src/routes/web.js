@@ -1,17 +1,14 @@
 import express from "express";
-import chatbotController from "../controllers/chatbotController";
-
+import chatbotControllers from "../controllers/chatbotController";
 let router = express.Router();
 
 let initWebRoutes = (app) => {
-    router.get("/", chatbotController.getHomepage);
-
-    router.get("/webhook", chatbotController.getWebhook);
-    router.post("/webhook", chatbotController.postWebhook);
-
-
-    return app.use("/" , router);
-
+    router.get("/", chatbotControllers.getHomepage)
+    router.get("/webhook", chatbotControllers.getWebhook);
+    router.post("/webhook", chatbotControllers.postWebhook);
+    router.get("/profile", chatbotControllers.getFacebookUserProfile);
+    router.post("/set-up-user-fb-profile", chatbotControllers.setUpUserFacebookProfile);
+    return app.use("/", router);
 };
 
 module.exports = initWebRoutes;
