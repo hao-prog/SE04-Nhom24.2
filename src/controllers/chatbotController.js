@@ -204,7 +204,7 @@ function handleMessage(sender_psid, received_message) {
       checkName(received_message.text);
       setTimeout(() => {
         if (name.text != "") {
-          console.log("name:"+name.text+".") 
+           
           ansArr[0] = name.text;
           response = {
             "attachment": {
