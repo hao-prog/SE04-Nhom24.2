@@ -69,6 +69,14 @@ let postWebhook = (req, res) => {
     }
 }
 
+const { spawn } = require('child_process');
+
+var delayedTime = 2600
+
+var name = {
+  "text" : ""
+};
+
 var ansArr = []
 
 var askPhoneNumQs = {
@@ -96,6 +104,27 @@ var askNameQs = {
     6: 'Tôi có thể biết tên của Anh/Chị không?',
     7: 'Tôi có thể biết tôi đang nói chuyện với ai được không?',
 }
+
+function checkName(data) {
+  let childPython = spawn('python', ['test2.py', data]);
+        childPython.stdout.on('data', function(data) {
+          
+          // var obj = JSON.parse(`${data}`);
+          // console.log(obj.nerLabel);  
+          name = {
+            "text" : `${data}` 
+          }
+        
+        });
+        childPython.stderr.on('data', (data) => {
+            console.error(`${data}`);
+        });
+
+        childPython.on('close', (code) => {
+            console.log(`child process exited with code ${code}`)
+        });
+}
+checkName("h");
 
 function sendGreeting(sender_psid) {
     let rsp_1;
@@ -128,10 +157,9 @@ function sendGreeting(sender_psid) {
 
     // Sends the response message
     callSendAPI(sender_psid, rsp_2);
-    //  setTimeout(function() {
-    //   console.log('hello world!');
-    //   }, 5000); 
-    callSendAPI(sender_psid, rsp_1);
+    setTimeout(function() {
+      callSendAPI(sender_psid, rsp_1);
+    }, 500);
 }
 
 function getYNTemplate(tittle, payload1, payload2) {
@@ -165,239 +193,219 @@ function getYNTemplate(tittle, payload1, payload2) {
 
 // Handles messages events
 function handleMessage(sender_psid, received_message) {
-
-    let response;
   
-    // Check if the message contains text
-    if (received_message.text) {
-      if (received_message.text === 'Xin chào' || received_message.text === 'Bắt đầu trò chuyện') {
-        sendGreeting(sender_psid);
-      } else if (!ansArr[0]) {
-        response = {
-          "attachment": {
-            "type": "template",
-            "payload": {
-              "template_type": "generic",
-              "elements": [{
-                "title": "Anh/ Chị muốn ủng hộ theo cá nhân hay tổ chức?",
-                "subtitle": "Anh/Chị có thể chọn nút ở bên dưới để trả lời",
-                "buttons": [
-                  {
-                    "type": "postback",
-                    "title": "Cá nhân",
-                    "payload": "canhan",
-                  },
-                  {
-                    "type": "postback",
-                    "title": "Tổ chức",
-                    "payload": "tochuc",
-                  },
-                  {
-                    "type": "postback",
-                    "title": "Khác",
-                    "payload": "donvikhac",
-                  }
-                ],
-              }]
+  let response ;
+
+  // Check if the message contains text
+  if (received_message.text) {
+    if (received_message.text === 'Xin chào' || received_message.text === 'Bắt đầu trò chuyện') {
+      sendGreeting(sender_psid);
+    } else if (!ansArr[0]) {
+      checkName(received_message.text);
+      setTimeout(() => {
+        if (name.text != "") {
+          console.log("name:"+name.text+".") 
+          ansArr[0] = name.text;
+          response = {
+            "attachment": {
+              "type": "template",
+              "payload": {
+                "template_type": "generic",
+                "elements": [{
+                  "title": "Anh/ Chị muốn ủng hộ theo cá nhân hay tổ chức?",
+                  "subtitle": "Anh/Chị có thể chọn nút ở bên dưới để trả lời",
+                  "buttons": [
+                    {
+                      "type": "postback",
+                      "title": "Cá nhân",
+                      "payload": "canhan",
+                    },
+                    {
+                      "type": "postback",
+                      "title": "Tổ chức",
+                      "payload": "tochuc",
+                    },
+                    {
+                      "type": "postback",
+                      "title": "Khác",
+                      "payload": "donvikhac",
+                    }
+                  ],
+                }]
+              }
             }
           }
+        } else {
+          let randNum = Math.floor(Math.random() * Object.keys(askNameQs).length) + 1;
+          let txt = askNameQs[randNum];
+          response = { "text": txt };
         }
-      } else if (ansArr[0] === 'Tổ chức') {
-        ansArr[0] = received_message.text;
-        let randNum = Math.floor(Math.random() * Object.keys(askPhoneNumQs).length) + 1;
-        let txt = askPhoneNumQs[randNum];
-        response = { "text": txt };
-      }
-      else if (!ansArr[1]){ 
-        ansArr.push(received_message.text); // Assume that user has sent appropriate phone number
-        response = { "text": 'Email để liên lạc của Anh/Chị là gì nhỉ?' };
-      } else if (!ansArr[2]) { 
-        ansArr.push(received_message.text); // Assume that user has sent appropriate email
-        response = { "text": 'Đường link đến Facebook của Anh/Chị là gì nhỉ?\nNếu Anh/Chị dùng phương thức khác thì hãy cho tôi biết tên phương thức và tên tài khoản tương ứng.' };
-      } else if (!ansArr[3]) {
-        ansArr.push(received_message.text);
-        response = { "text": 'Anh/ Chị có cần hỗ trợ thông tin về địa phương chịu thiệt hại nhất, chưa được hỗ trợ nhiều không ạ?' };
-      } else if (!ansArr[4]){ 
+      }, delayedTime);
+    } 
+    else if (ansArr[1] === 'Tổ chức') {
+      ansArr[1] = received_message.text;
+      let randNum = Math.floor(Math.random() * Object.keys(askPhoneNumQs).length) + 1;
+      let txt = askPhoneNumQs[randNum];
+      response = { "text": txt };
+    }
+    else if (!ansArr[2]){ 
+      ansArr.push(received_message.text); // Assume that user has sent appropriate phone number
+      response = { "text": 'Email để liên lạc của Anh/Chị là gì nhỉ?' };
+    } else if (!ansArr[3]) { 
+      ansArr.push(received_message.text); // Assume that user has sent appropriate email
+      response = { "text": 'Đường link đến Facebook của Anh/Chị là gì nhỉ?\nNếu Anh/Chị dùng phương thức khác thì hãy cho tôi biết tên phương thức và tên tài khoản tương ứng.' };
+    } else if (!ansArr[4]) {
+      ansArr.push(received_message.text);
+      response = { "text": 'Anh/ Chị có cần hỗ trợ thông tin về địa phương chịu thiệt hại nhất, chưa được hỗ trợ nhiều không ạ?' };
+    } else if (!ansArr[5]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/ Chị có muốn tôi cung cấp thông tin về danh sách các hoàn cảnh bị thiệt hại và cần được hỗ trợ xác minh các trường hợp này không?' };
+    } else if (!ansArr[6]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/ Chị có nhu cầu kết nối với chính quyền và các tổ chức tại địa phương không ạ?' };
+    } else if (!ansArr[7]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/ Chị có muốn kết nối với tình nguyện viên/ tổ chức từ thiện khác ở cùng khu vực không ạ?' };
+    } else if (!ansArr[8]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/ Chị có cần hỗ trợ chuyển tiền, hàng cứu trợ đến tận tay người được cứu trợ không ạ?' };
+    } else if (!ansArr[9]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/ Chị có muốn huy động được nhiều nguồn lực hơn bằng truyền thông không ạ?' };
+    } else if (!ansArr[10]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Về hình thức cứu trợ, Anh/Chị có nhu cầu Gửi tiền không ạ?' };
+    } else if (!ansArr[11]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Vậy còn Gửi hàng có phải 1 trong những hình thức cứu trợ mà Anh/Chị đang quan tâm không ạ?' };
+    } else if (!ansArr[12]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/Chị có đang quan tâm đến hình thức cứu trợ Hỗ trợ lâu dài không ạ?' };
+    } else if (!ansArr[13]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/Chị có muốn cứu trợ bằng hình thức khác bên trên không ạ?' };
+    } else if (!ansArr[14]){                    
+      if(received_message.text === 'Có') {
         ansArr.push(received_message.text); 
-        response = { "text": 'Anh/ Chị có muốn tôi cung cấp thông tin về danh sách các hoàn cảnh bị thiệt hại và cần được hỗ trợ xác minh các trường hợp này không?' };
-      } else if (!ansArr[5]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/ Chị có nhu cầu kết nối với chính quyền và các tổ chức tại địa phương không ạ?' };
-      } else if (!ansArr[6]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/ Chị có muốn kết nối với tình nguyện viên/ tổ chức từ thiện khác ở cùng khu vực không ạ?' };
-      } else if (!ansArr[7]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/ Chị có cần hỗ trợ chuyển tiền, hàng cứu trợ đến tận tay người được cứu trợ không ạ?' };
-      } else if (!ansArr[8]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/ Chị có muốn huy động được nhiều nguồn lực hơn bằng truyền thông không ạ?' };
-      } else if (!ansArr[9]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Về hình thức cứu trợ, Anh/Chị có nhu cầu Gửi tiền không ạ?' };
-      } else if (!ansArr[10]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Vậy còn Gửi hàng có phải 1 trong những hình thức cứu trợ mà Anh/Chị đang quan tâm không ạ?' };
-      } else if (!ansArr[11]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/Chị có đang quan tâm đến hình thức cứu trợ Hỗ trợ lâu dài không ạ?' };
-      } else if (!ansArr[12]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/Chị có muốn cứu trợ bằng hình thức khác bên trên không ạ?' };
-      } else if (!ansArr[13]){                    
-        if(received_message.text === 'Có') {
-          ansArr.push(received_message.text); 
-          response = { "text": 'Vậy hình thức đó là gì ạ?' };
-        } else if (received_message.text === 'Không') {
-          ansArr.push('Không'); 
-          response = { "text": 'Đối tượng Anh/Chị ưu tiên có phải là Bất cứ ai có hoàn cảnh khó khăn không ạ?' };
-        }
-      } else if (ansArr[13] === 'Có'){                    
-        ansArr[13] = received_message.text; 
+        response = { "text": 'Vậy hình thức đó là gì ạ?' };
+      } else if (received_message.text === 'Không') {
+        ansArr.push('Không'); 
         response = { "text": 'Đối tượng Anh/Chị ưu tiên có phải là Bất cứ ai có hoàn cảnh khó khăn không ạ?' };
-      } else if (!ansArr[14]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/Chị có ưu tiên giúp đỡ Người già không ạ?' };
-      } else if (!ansArr[15]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Người bệnh có nằm trong danh sách đối tượng ưu tiên của Anh/Chị không ạ?' };
-      } else if (!ansArr[16]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Đối tượng Anh/Chị ưu tiên có bao gồm Trẻ em không ạ?' };
-      } else if (!ansArr[17]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Đối tượng Anh/Chị ưu tiên có phải là Nông dân không ạ?' };
-      } else if (!ansArr[18]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Ngư dân có nằm trong danh sách đối tượng ưu tiên của Anh/Chị không ạ?' };
-      } else if (!ansArr[19]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/Chị có muốn ưu tiên giúp đỡ Trường học không ạ?' };
-      } else if (!ansArr[20]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Đối tượng Anh/Chị ưu tiên có bao gồm Cơ sở Y tế không ạ?' };
-      } else if (!ansArr[21]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/Chị có muốn ưu tiên giúp đỡ Xây dựng hạ tầng (điện đường trường trạm) không ạ?' };
-      } else if (!ansArr[22]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/Chị có muốn ưu tiên giúp đỡ Cung cấp nước sạch, vệ sinh sạch không ạ?' };
-      } else if (!ansArr[23]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/Chị có muốn ưu tiên giúp đỡ Cung cấp nhà an toàn trong lũ không ạ?' };
-      } else if (!ansArr[24]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Có đối tượng khác ngoài các đối tượng bên trên mà Anh/Chị cũng muốn ưu tiên không ạ?' };
-      } else if (!ansArr[25]){ 
-        if(received_message.text === 'Có') {
-          ansArr.push(received_message.text); 
-          response = { "text": 'Vậy đối tượng đó là ai ạ?' };
-        } else if (received_message.text === 'Không') {
-          ansArr.push('Không'); 
-          response = { "text": 'Anh/Chị có muốn chia sẻ Các dữ liệu các hoàn cảnh / hộ cần cứu trợ mà mình có không ạ?' };
-        }
-      } else if (ansArr[25] === 'Có'){                    
-        ansArr[25] = received_message.text; 
-        response = { "text": 'Anh/Chị có muốn chia sẻ Các dữ liệu các hoàn cảnh / hộ cần cứu trợ mà mình có không ạ?' };
-      } else if (!ansArr[26]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Sau khi cứu trợ, Anh/Chị có muốn chia sẻ hình ảnh và thông tin đã cứu trợ với chúng tôi không ạ?' };
-      } else if (!ansArr[27]){ 
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/Chị có muốn chia sẻ với chúng tôi bằng cách Tham gia tình nguyện viên cùng chiến dịch không ạ?' };
-      } else if (!ansArr[28]){     
-        ansArr.push(received_message.text); 
-        response = { "text": 'Anh/Chị có Ý tưởng, Đề xuất khác muốn chia sẻ với cộng đồng không ạ?' };
-      } else if (!ansArr[29]){   
-        if(received_message.text === 'Có') {
-          ansArr.push(received_message.text); 
-          response = { "text": 'Vậy Anh/Chị muốn chia sẻ ý tưởng, đề xuất điều gì ạ?' };
-        } else if (received_message.text === 'Không') {
-          ansArr.push('Không'); 
-          response = { "text": 'Việc thu thập thông tin này được thực hiện trong khuôn khổ Chiến dịch xã hội “Hỗ trợ người cứu trợ - Hướng về khúc ruột miền Trung”, được phát động bởi Đội tình nguyện viên Hỗ trợ điều phối thông tin cứu trợ.\n\nThông tin và yêu cầu của Anh/Chị đã được ghi nhận. Xin chân thành cảm ơn Anh/Chị đã dành thời gian trả lời ^^!' };
-        }
-      } else if (ansArr[29] === 'Có'){                    
-        ansArr[29] = received_message.text; 
-        response = { "text": 'Việc thu thập thông tin này được thực hiện trong khuôn khổ Chiến dịch xã hội “Hỗ trợ người cứu trợ - Hướng về khúc ruột miền Trung”, được phát động bởi Đội tình nguyện viên Hỗ trợ điều phối thông tin cứu trợ.\n\nThông tin và yêu cầu của Anh/Chị đã được ghi nhận. Xin chân thành cảm ơn Anh/Chị đã dành thời gian trả lời ^^!' };
-      } else if (!ansArr[30]){ 
-        response = { "text": `Amazing Gút Chóp Anh/Chị\nCâu trả lời của Anh/Chị\n${ansArr}` };
-      } 
-    }
-    
-    else if (received_message.attachments) {
-      // Get the URL of the message attachment
-      let attachment_url = received_message.attachments[0].payload.url;
-      response = {
-        "attachment": {
-          "type": "template",
-          "payload": {
-            "template_type": "generic",
-            "elements": [{
-              "title": "Is this the right picture?",
-              "subtitle": "Tap a button to answer.",
-              "buttons": [
-                {
-                  "type": "postback",
-                  "title": "Yes!",
-                  "payload": "yes",
-                },
-                {
-                  "type": "postback",
-                  "title": "No!",
-                  "payload": "no",
-                },
-                {
-                  "type": "postback",
-                  "title": "Other!",
-                  "payload": "other",
-                }
-              ],
-            }]
-          }
-        }
       }
-    }
-  
-    // Sends the response message
-    callSendAPI(sender_psid, response);  
-      
+    } else if (ansArr[14] === 'Có'){                    
+      ansArr[14] = received_message.text; 
+      response = { "text": 'Đối tượng Anh/Chị ưu tiên có phải là Bất cứ ai có hoàn cảnh khó khăn không ạ?' };
+    } else if (!ansArr[15]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/Chị có ưu tiên giúp đỡ Người già không ạ?' };
+    } else if (!ansArr[16]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Người bệnh có nằm trong danh sách đối tượng ưu tiên của Anh/Chị không ạ?' };
+    } else if (!ansArr[17]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Đối tượng Anh/Chị ưu tiên có bao gồm Trẻ em không ạ?' };
+    } else if (!ansArr[18]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Đối tượng Anh/Chị ưu tiên có phải là Nông dân không ạ?' };
+    } else if (!ansArr[19]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Ngư dân có nằm trong danh sách đối tượng ưu tiên của Anh/Chị không ạ?' };
+    } else if (!ansArr[20]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/Chị có muốn ưu tiên giúp đỡ Trường học không ạ?' };
+    } else if (!ansArr[21]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Đối tượng Anh/Chị ưu tiên có bao gồm Cơ sở Y tế không ạ?' };
+    } else if (!ansArr[22]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/Chị có muốn ưu tiên giúp đỡ Xây dựng hạ tầng (điện đường trường trạm) không ạ?' };
+    } else if (!ansArr[23]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/Chị có muốn ưu tiên giúp đỡ Cung cấp nước sạch, vệ sinh sạch không ạ?' };
+    } else if (!ansArr[24]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/Chị có muốn ưu tiên giúp đỡ Cung cấp nhà an toàn trong lũ không ạ?' };
+    } else if (!ansArr[25]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Có đối tượng khác ngoài các đối tượng bên trên mà Anh/Chị cũng muốn ưu tiên không ạ?' };
+    } else if (!ansArr[26]){ 
+      if(received_message.text === 'Có') {
+        ansArr.push(received_message.text); 
+        response = { "text": 'Vậy đối tượng đó là ai ạ?' };
+      } else if (received_message.text === 'Không') {
+        ansArr.push('Không'); 
+        response = { "text": 'Anh/Chị có muốn chia sẻ Các dữ liệu các hoàn cảnh / hộ cần cứu trợ mà mình có không ạ?' };
+      }
+    } else if (ansArr[26] === 'Có'){                    
+      ansArr[26] = received_message.text; 
+      response = { "text": 'Anh/Chị có muốn chia sẻ Các dữ liệu các hoàn cảnh / hộ cần cứu trợ mà mình có không ạ?' };
+    } else if (!ansArr[27]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Sau khi cứu trợ, Anh/Chị có muốn chia sẻ hình ảnh và thông tin đã cứu trợ với chúng tôi không ạ?' };
+    } else if (!ansArr[28]){ 
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/Chị có muốn chia sẻ với chúng tôi bằng cách Tham gia tình nguyện viên cùng chiến dịch không ạ?' };
+    } else if (!ansArr[29]){     
+      ansArr.push(received_message.text); 
+      response = { "text": 'Anh/Chị có Ý tưởng, Đề xuất khác muốn chia sẻ với cộng đồng không ạ?' };
+    } else if (!ansArr[30]){   
+      if(received_message.text === 'Có') {
+        ansArr.push(received_message.text); 
+        response = { "text": 'Vậy Anh/Chị muốn chia sẻ ý tưởng, đề xuất điều gì ạ?' };
+      } else if (received_message.text === 'Không') {
+        ansArr.push('Không'); 
+        response = { "text": 'Việc thu thập thông tin này được thực hiện trong khuôn khổ Chiến dịch xã hội “Hỗ trợ người cứu trợ - Hướng về khúc ruột miền Trung”, được phát động bởi Đội tình nguyện viên Hỗ trợ điều phối thông tin cứu trợ.\n\nThông tin và yêu cầu của Anh/Chị đã được ghi nhận. Xin chân thành cảm ơn Anh/Chị đã dành thời gian trả lời ^^!' };
+      }
+    } else if (ansArr[30] === 'Có'){                    
+      ansArr[30] = received_message.text; 
+      response = { "text": 'Việc thu thập thông tin này được thực hiện trong khuôn khổ Chiến dịch xã hội “Hỗ trợ người cứu trợ - Hướng về khúc ruột miền Trung”, được phát động bởi Đội tình nguyện viên Hỗ trợ điều phối thông tin cứu trợ.\n\nThông tin và yêu cầu của Anh/Chị đã được ghi nhận. Xin chân thành cảm ơn Anh/Chị đã dành thời gian trả lời ^^!' };
+    } 
+    else if (!ansArr[31]){ 
+      response = { "text": `Amazing Gút Chóp Anh/Chị\nCâu trả lời của Anh/Chị\n${ansArr}` };
+    } 
   }
+  
+  setTimeout(() => {
+    callSendAPI(sender_psid, response);
+  }, delayedTime);
+  
+}
 
 
     // Handles messaging_postbacks events
     function handlePostback(sender_psid, received_postback) {
-        let response;
-        
-        // Get the payload for the postback
-        let payload = received_postback.payload;
-        
-        // Set the response based on the postback payload
-        if (payload === 'yes') {
-          response = { "text": "Thanks!" }
-        } else if (payload === 'no') {
-          response = { "text": "Oops, try sending another pig." }
-        } else if (payload === 'dungvay') {
-          let randNum = Math.floor(Math.random() * Object.keys(askNameQs).length) + 1;
-          let txt = askNameQs[randNum];
-          response = { "text": txt }
-        } else if (payload === 'canhan') {
-          ansArr[0] = "Cá nhân";
-          let randNum = Math.floor(Math.random() * Object.keys(askPhoneNumQs).length) + 1;
-          let txt = askPhoneNumQs[randNum];
-          response = { "text": txt };
-        } else if (payload === 'tochuc') {
-          ansArr[0] = "Tổ chức";
-          let randNum = Math.floor(Math.random() * Object.keys(askOrgQs).length) + 1;
-          let txt = askOrgQs[randNum];
-          response = { "text": txt };
-        } else if (payload === 'donvikhac') {
-          ansArr[0] = "Tổ chức";
-          let randNum = Math.floor(Math.random() * Object.keys(askOtherOrgQs).length) + 1;
-          let txt = askOtherOrgQs[randNum];
-          response = { "text": txt };
-        } 
-        // Send the message to acknowledge the postback
-        callSendAPI(sender_psid, response);
+      let response;
+      
+      // Get the payload for the postback
+      let payload = received_postback.payload;
+      
+      // Set the response based on the postback payload
+      if (payload === 'yes') {
+        response = { "text": "Thanks!" }
+      } else if (payload === 'no') {
+        response = { "text": "Oops, try sending another pig." }
+      } else if (payload === 'dungvay') {
+        let randNum = Math.floor(Math.random() * Object.keys(askNameQs).length) + 1;
+        let txt = askNameQs[randNum];
+        response = { "text": txt }
+      } else if (payload === 'canhan') {
+        ansArr[1] = "Cá nhân";
+        let randNum = Math.floor(Math.random() * Object.keys(askPhoneNumQs).length) + 1;
+        let txt = askPhoneNumQs[randNum];
+        response = { "text": txt };
+      } else if (payload === 'tochuc') {
+        ansArr[1] = "Tổ chức";
+        let randNum = Math.floor(Math.random() * Object.keys(askOrgQs).length) + 1;
+        let txt = askOrgQs[randNum];
+        response = { "text": txt };
+      } else if (payload === 'donvikhac') {
+        ansArr[1] = "Tổ chức";
+        let randNum = Math.floor(Math.random() * Object.keys(askOtherOrgQs).length) + 1;
+        let txt = askOtherOrgQs[randNum];
+        response = { "text": txt };
+      } 
+      // Send the message to acknowledge the postback
+      callSendAPI(sender_psid, response);
     }
 
     // Sends response messages via the Send API
