@@ -71,7 +71,7 @@ let postWebhook = (req, res) => {
 
 const { spawn } = require('child_process');
 
-var delayedTime = 2700
+var delayedTime = 3000
 
 var curUserResponse = {
   "text" : ""
@@ -311,9 +311,9 @@ function handleMessage(sender_psid, received_message) {
           response = { "text": 'Email để liên lạc của Anh/Chị là gì nhỉ?' };
         }
       } else if (!ansArr[4]) {
-        let objEntity = Object.values(received_message.nlp.entities)[0][0];
-        if (objEntity && objEntity.name == 'wit$url') {
-          ansArr.push(objEntity.value);
+        let objEntity = Object.values(received_message.nlp.entities)[0];
+        if (objEntity && objEntity[0].name == 'wit$url') {
+          ansArr.push(objEntity[0].value);
           response = { "text": 'Anh/ Chị có cần hỗ trợ thông tin về địa phương chịu thiệt hại nhất, chưa được hỗ trợ nhiều không ạ?' };  
         } else {
           response = { "text": 'Đường link đến Facebook của Anh/Chị là gì nhỉ?\nNếu Anh/Chị dùng phương thức khác thì hãy cho tôi biết tên phương thức và tên tài khoản tương ứng.' };
@@ -446,6 +446,7 @@ function handleMessage(sender_psid, received_message) {
       } else if (payload === 'no') {
         response = { "text": "Oops, try sending another pig." }
       } else if (payload === 'dungvay') {
+        ansArr[0] = 1;
         let randNum = Math.floor(Math.random() * Object.keys(askNameQs).length) + 1;
         let txt = askNameQs[randNum];
         response = { "text": txt }
